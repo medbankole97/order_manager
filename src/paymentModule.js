@@ -3,7 +3,7 @@ const pool = require("./config/db");
 async function get() {
   const connection = await pool.getConnection();
   try {
-    const [rows, _fields] = await connection.execute("SELECT * FROM products");
+    const [rows, _fields] = await connection.execute("SELECT * FROM payments");
     return rows;
   } catch (error) {
     throw error;
@@ -12,12 +12,12 @@ async function get() {
   }
 }
 
-async function add(name, description, price, stock, category, barcode, status) {
+async function add(payment_date, amount, payment_method, order_id) {
   const connection = await pool.getConnection();
   try {
     const [result] = await connection.execute(
-      "INSERT INTO products (name, description, price, stock, category, barcode, status) values (?, ?, ?, ?, ?, ?, ?)",
-      [name, description, price, stock, category, barcode, status]
+      "INSERT INTO payments (payment_date, amount, payment_method, order_id) VALUES (?, ?, ?, ?)",
+      [payment_date, amount, payment_method, order_id]
     );
     return result.insertId;
   } catch (error) {
@@ -31,7 +31,7 @@ async function exists(id) {
   const connection = await pool.getConnection();
   try {
     const [rows] = await connection.execute(
-      "SELECT COUNT(*) as count FROM products WHERE id = ?",
+      "SELECT COUNT(*) as count FROM payments WHERE id = ?",
       [id]
     );
     return rows[0].count > 0;
@@ -42,17 +42,17 @@ async function exists(id) {
   }
 }
 
-async function update(id, name, description, price, stock, category, barcode, status) {
+async function update(id, payment_date, amount, payment_method, order_id) {
   const connection = await pool.getConnection();
   try {
-    const existsProduct = await exists(id);
-    if (!existsProduct) {
-      throw new Error(`The product with ID ${id} does not exist.`);
+    const existsPayment = await exists(id);
+    if (!existsPayment) {
+      throw new Error(`The payment with ID ${id} does not exist.`);
     }
 
     const [result] = await connection.execute(
-      "UPDATE products SET name = ?, description = ?, price = ?, stock = ?, category = ?, barcode = ?, status = ? WHERE id = ?",
-      [name, description, price, stock, category, barcode, status, id]
+      "UPDATE payments SET payment_date = ?, amount = ?, payment_method = ?, order_id = ? WHERE id = ?",
+      [payment_date, amount, payment_method, order_id, id]
     );
     return result.affectedRows;
   } catch (error) {
@@ -65,19 +65,19 @@ async function update(id, name, description, price, stock, category, barcode, st
 async function destroy(id) {
   const connection = await pool.getConnection();
   try {
-    const existsProduct = await exists(id);
-    if (!existsProduct) {
-      throw new Error(`The product with ID ${id} does not exist.`);
+    const existsPayment = await exists(id);
+    if (!existsPayment) {
+      throw new Error(`The payment with ID ${id} does not exist.`);
     }
 
     const [result] = await connection.execute(
-      "DELETE FROM products WHERE id = ?",
+      "DELETE FROM payments WHERE id = ?",
       [id]
     );
     return result.affectedRows;
   } catch (error) {
     if (error.code && error.code === "ER_ROW_IS_REFERENCED_2") {
-      throw new Error(`Deletion error: The product with ID ${id} is referenced elsewhere.`);
+      throw new Error(`Deletion error: The payment with ID ${id} is referenced elsewhere.`);
     }
     throw error;
   } finally {

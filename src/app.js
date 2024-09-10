@@ -1,5 +1,7 @@
 const customerModule = require("./customerModule");
 const productModule = require("./productModule");
+const purchaseModule = require("./purchaseModule");
+const paymentModule = require("./paymentModule");
 const readlineSync = require("readline-sync");
 
 function menu() {
@@ -11,6 +13,14 @@ function menu() {
   console.log("6 List all products");
   console.log("7 Update product information");
   console.log("8 Delete a product");
+  console.log("9 Add a purchase order");
+  console.log("10 List all purchase orders");
+  console.log("11 Update purchase order information");
+  console.log("12 Delete a purchase order");
+  console.log("13 Add a payment");
+  console.log("14 List all payments");
+  console.log("15 Update payment information");
+  console.log("16 Delete a payment");
   console.log("0 Quit");
   const choice = readlineSync.question("Your choice: ");
   return choice;
@@ -91,13 +101,80 @@ async function main() {
           console.log(`Number of rows deleted: ${deleteProductResult}`);
           break;
 
+        // Gestion des commandes (Purchase Orders)
+        case "9":
+          const orderDate = readlineSync.question("Enter the order date (YYYY-MM-DD): ");
+          const deliveryAddress = readlineSync.question("Enter the delivery address: ");
+          const customerId = readlineSync.questionInt("Enter the customer ID: ");
+          const trackNumber = readlineSync.question("Enter the track number: ");
+          const orderStatus = readlineSync.question("Enter the order status: ");
+          const orderId = await purchaseModule.add(orderDate, deliveryAddress, customerId, trackNumber, orderStatus);
+          console.log(`Purchase order added with ID: ${orderId}`);
+          break;
+
+        case "10":
+          const orders = await purchaseModule.get();
+          console.log("List of purchase orders:");
+          console.log(orders);
+          break;
+
+        case "11":
+          const updateOrderId = readlineSync.questionInt("Enter the ID of the purchase order to update: ");
+          const newOrderDate = readlineSync.question("Enter the new order date (YYYY-MM-DD): ");
+          const newDeliveryAddress = readlineSync.question("Enter the new delivery address: ");
+          const newCustomerId = readlineSync.questionInt("Enter the new customer ID: ");
+          const newTrackNumber = readlineSync.question("Enter the new track number: ");
+          const newOrderStatus = readlineSync.question("Enter the new order status: ");
+          const updateOrderResult = await purchaseModule.update(updateOrderId, newOrderDate, newDeliveryAddress, newCustomerId, newTrackNumber, newOrderStatus);
+          console.log(`Number of rows updated: ${updateOrderResult}`);
+          break;
+
+        case "12":
+          const deleteOrderId = readlineSync.questionInt("Enter the ID of the purchase order to delete: ");
+          const deleteOrderResult = await purchaseModule.destroy(deleteOrderId);
+          console.log(`Number of rows deleted: ${deleteOrderResult}`);
+          break;
+
+        // Gestion des paiements (Payments)
+        case "13":
+          const paymentDate = readlineSync.question("Enter the payment date (YYYY-MM-DD): ");
+          const amount = readlineSync.questionFloat("Enter the amount: ");
+          const paymentMethod = readlineSync.question("Enter the payment method: ");
+          const paymentOrderId = readlineSync.questionInt("Enter the order ID: ");
+          const paymentId = await paymentModule.add(paymentDate, amount, paymentMethod, paymentOrderId);
+          console.log(`Payment added with ID: ${paymentId}`);
+          break;
+
+        case "14":
+          const payments = await paymentModule.get();
+          console.log("List of payments:");
+          console.log(payments);
+          break;
+
+        case "15":
+          const updatePaymentId = readlineSync.questionInt("Enter the ID of the payment to update: ");
+          const newPaymentDate = readlineSync.question("Enter the new payment date (YYYY-MM-DD): ");
+          const newAmount = readlineSync.questionFloat("Enter the new amount: ");
+          const newPaymentMethod = readlineSync.question("Enter the new payment method: ");
+          const newOrderId = readlineSync.questionInt("Enter the new order ID: ");
+          const updatePaymentResult = await paymentModule.update(updatePaymentId, newPaymentDate, newAmount, newPaymentMethod, newOrderId);
+          console.log(`Number of rows updated: ${updatePaymentResult}`);
+          break;
+
+        case "16":
+          const deletePaymentId = readlineSync.questionInt("Enter the ID of the payment to delete: ");
+          const deletePaymentResult = await paymentModule.destroy(deletePaymentId);
+          console.log(`Number of rows deleted: ${deletePaymentResult}`);
+          break;
+
         default:
           console.log("This option is invalid");
           break;
       }
       choice = menu();
     }
-
+   
+    
     console.log("Exiting...");
   } catch (e) {
     console.log("Error: ", e.message);
