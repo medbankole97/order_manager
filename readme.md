@@ -34,7 +34,7 @@ Ce projet est une application Node.js simple pour gérer des clients des produit
 Pour démarrer l'application, exécutez la commande suivante :
 
 ```bash
-node app.js
+node src/app.js
 ```
 ## 5. ***Documentation des Fonctions***
 
@@ -57,16 +57,16 @@ ce module gère les opérations CRUD des de la table **products**.
 ### purchaseModule.js :
 
 
- - `get()`: Récupère tous les  de la base de données.
- - `add(order_date, delivery_address, customer_id, track_number, status)`:
- - `update(id, order_date, delivery_address, customer_id, track_number, status)`
- - `destroy(id) `: Supprime un  de la base de données
+ - `get()`: Récupère tous les commandes de la base de données.
+ - `add(order_date, delivery_address, customer_id, track_number, status)`:Ajoute une commande
+ - `update(id, order_date, delivery_address, customer_id, track_number, status)`: Met à jour une commande
+ - `destroy(id) `: Supprime une commande de la base de données
 
 ### paymentModule.js :
-- `get()`: Récupère tous les  de la base de données.
-- `add(payment_date, amount, payment_method, order_id)`:
-- `update(id, payment_date, amount, payment_method, order_id)`:
-- `destroy(id)`
+- `get()`: Récupère tous les payements de la base de données.
+- `add(payment_date, amount, payment_method, order_id)`: Ajoute un payment
+- `update(id, payment_date, amount, payment_method, order_id)`: Met à jour un payment
+- `destroy(id)`: Supprime un payement
 
 
 ### Schéma CMD et MLD
@@ -77,4 +77,4 @@ ce module gère les opérations CRUD des de la table **products**.
 
 
 ## Author
-[Mohaohmed Bankolé](https://github.com/medbankole97)
+[Mohamed Bankolé](https://github.com/medbankole97)

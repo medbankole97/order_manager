@@ -1,5 +1,12 @@
 const pool = require("./config/db");
 
+
+function validateCustomerData(name, address, email, phone) {
+  if (!name || !address || !email || !phone) {
+    throw new Error('Tous les champs (nom, adresse, email, téléphone) sont obligatoires.');
+  }
+}
+
 async function get() {
   const connection = await pool.getConnection();
   try {
@@ -15,6 +22,8 @@ async function get() {
 async function add(name, address, email, phone) {
   const connection = await pool.getConnection();
   try {
+    validateCustomerData(name, address, email, phone);
+
     const [result] = await connection.execute(
       "INSERT INTO customers (name, address, email, phone) values (?, ?, ?, ?)",
       [name, address, email, phone]
@@ -45,6 +54,8 @@ async function exists(id) {
 async function update(id, name, address, email, phone) {
   const connection = await pool.getConnection();
   try {
+    validateCustomerData(name, address, email, phone);
+
     const existsCustomer = await exists(id);
     if (!existsCustomer) {
       throw new Error(`The customer with ID ${id} does not exist.`);
