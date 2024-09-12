@@ -40,12 +40,77 @@ async function add(orderDate, deliveryAddress, customerId, trackNumber, status) 
 async function addProductToOrder(orderId, productId, quantity, price) {
   try {
     const [result] = await db.query(
-      'INSERT INTO order_details (quantity, price, order_id, product_id ) VALUES (?, ?, ?, ?)',
+      'INSERT INTO order_details (quantity, price, order_id, product_id) VALUES (?, ?, ?, ?)',
       [quantity, price, orderId, productId]
     );
     return result.affectedRows;
   } catch (error) {
     console.error("Error adding product to order:", error);
+    throw error;
+  }
+}
+
+// Mettre à jour une commande
+async function update(orderId, orderDate, deliveryAddress, customerId, trackNumber, status) {
+  try {
+    // Vérifier si la commande existe avant la mise à jour
+    const [order] = await db.query('SELECT id FROM purchase_orders WHERE id = ?', [orderId]);
+    if (order.length === 0) {
+      throw new Error("Order not found.");
+    }
+
+    // Mettre à jour les détails de la commande
+    const [result] = await db.query(
+      'UPDATE purchase_orders SET date = ?, delivery_address = ?, customer_id = ?, track_number = ?, status = ? WHERE id = ?',
+      [orderDate, deliveryAddress, customerId, trackNumber, status, orderId]
+    );
+    return result.affectedRows; // Nombre de lignes affectées
+  } catch (error) {
+    console.error("Error updating purchase order:", error);
+    throw error;
+  }
+}
+
+// Mettre à jour un détail de commande
+async function updateOrderDetail(orderId, productId, newQuantity, newPrice) {
+  try {
+    const [result] = await db.query(
+      'UPDATE order_details SET quantity = ?, price = ? WHERE order_id = ? AND product_id = ?',
+      [newQuantity, newPrice, orderId, productId]
+    );
+    return result.affectedRows; // Nombre de lignes affectées
+  } catch (error) {
+    console.error("Error updating order detail:", error);
+    throw error;
+  }
+}
+
+// Ajouter ou mettre à jour un produit dans une commande
+async function addOrUpdateOrderLine(orderId, productId, quantity, price) {
+  try {
+    // Vérifier si la ligne de commande existe déjà
+    const [existingLine] = await db.query(
+      'SELECT id FROM order_details WHERE order_id = ? AND product_id = ?',
+      [orderId, productId]
+    );
+
+    if (existingLine.length > 0) {
+      // Mettre à jour la ligne de commande existante
+      const [result] = await db.query(
+        'UPDATE order_details SET quantity = ?, price = ? WHERE order_id = ? AND product_id = ?',
+        [quantity, price, orderId, productId]
+      );
+      return result.affectedRows; // Nombre de lignes affectées
+    } else {
+      // Ajouter une nouvelle ligne de commande
+      const [result] = await db.query(
+        'INSERT INTO order_details (quantity, price, order_id, product_id) VALUES (?, ?, ?, ?)',
+        [quantity, price, orderId, productId]
+      );
+      return result.affectedRows; // Nombre de lignes affectées
+    }
+  } catch (error) {
+    console.error("Error adding or updating order line:", error);
     throw error;
   }
 }
@@ -61,7 +126,7 @@ async function get() {
     // Pour chaque commande, récupère les détails correspondants
     for (const order of orders) {
       const [details] = await db.query(
-        'SELECT product_id AS productId, quantity, price FROM order_details WHERE order_id = ?', 
+        'SELECT product_id AS productId, quantity, price FROM order_details WHERE order_id = ?',
         [order.id]
       );
       order.details = details; // Ajoute les détails dans l'objet commande
@@ -70,20 +135,6 @@ async function get() {
     return orders; // Retourne toutes les commandes avec leurs détails
   } catch (error) {
     console.error("Error retrieving purchase orders:", error);
-    throw error;
-  }
-}
-
-// Mettre à jour une commande
-async function update(orderId, orderDate, deliveryAddress, customerId, trackNumber, status) {
-  try {
-    const [result] = await db.query(
-      'UPDATE purchase_orders SET date = ?, delivery_address = ?, customer_id = ?, track_number = ?, status = ? WHERE id = ?',
-      [orderDate, deliveryAddress, customerId, trackNumber, status, orderId]
-    );
-    return result.affectedRows; // Nombre de lignes affectées
-  } catch (error) {
-    console.error("Error updating purchase order:", error);
     throw error;
   }
 }
@@ -104,5 +155,7 @@ module.exports = {
   addProductToOrder,
   get,
   update,
-  destroy
+  destroy,
+  updateOrderDetail, // Nouvelle fonction ajoutée
+  addOrUpdateOrderLine // Nouvelle fonction ajoutée
 };

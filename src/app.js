@@ -45,7 +45,7 @@ function purchaseMenu() {
   console.log("\n***** PURCHASE ORDER MANAGEMENT *****");
   console.log("1. Add a purchase order");
   console.log("2. List all purchase orders");
-  console.log("3. Update purchase order information");
+  console.log("3. Update a purchase order");
   console.log("4. Delete a purchase order");
   console.log("0. Return to main menu");
   const choice = readlineSync.question("Your choice: ");
@@ -65,7 +65,6 @@ function paymentMenu() {
 }
 
 // Function to handle adding a purchase order
-// Functions for managing purchase orders
 async function addPurchaseOrder() {
   const orderDate = readlineSync.question("Enter the order date (YYYY-MM-DD): ");
   const deliveryAddress = readlineSync.question("Enter the delivery address: ");
@@ -132,9 +131,10 @@ async function addPurchaseOrder() {
   }
 }
 
+// Function to list all purchase orders
 async function listAllPurchaseOrders() {
   try {
-    const purchaseOrders = await purchaseModule.get(); // Récupère toutes les commandes avec leurs détails
+    const purchaseOrders = await purchaseModule.get(); // Get all purchase orders with details
 
     if (purchaseOrders.length === 0) {
       console.log("No purchase orders found.");
@@ -153,7 +153,6 @@ async function listAllPurchaseOrders() {
         console.log("No products in this order.");
       } else {
         console.log("\n>>> Order Details:");
-        // console.log("Order Details:");
         order.details.forEach((detail) => {
           console.log(`  Product ID: ${detail.productId}`);
           console.log(`  Quantity: ${detail.quantity}`);
@@ -166,6 +165,7 @@ async function listAllPurchaseOrders() {
   }
 }
 
+// Main function
 async function main() {
   try {
     let mainChoice = mainMenu();
@@ -241,13 +241,13 @@ async function main() {
                 const newCategory = readlineSync.question("Enter the new category: ");
                 const newBarcode = readlineSync.question("Enter the new barcode: ");
                 const newStatus = readlineSync.question("Enter the new status: ");
-                const updateProductResult = await productModule.update(updateProductId, newProductName, newDescription, newPrice, newStock, newCategory, newBarcode, newStatus);
-                console.log(`Number of rows updated: ${updateProductResult}`);
+                const productUpdateResult = await productModule.update(updateProductId, newProductName, newDescription, newPrice, newStock, newCategory, newBarcode, newStatus);
+                console.log(`Number of rows updated: ${productUpdateResult}`);
                 break;
               case "4":
                 const deleteProductId = readlineSync.questionInt("Enter the ID of the product to delete: ");
-                const deleteProductResult = await productModule.destroy(deleteProductId);
-                console.log(`Number of rows deleted: ${deleteProductResult}`);
+                const productDeleteResult = await productModule.destroy(deleteProductId);
+                console.log(`Number of rows deleted: ${productDeleteResult}`);
                 break;
               default:
                 console.log("Invalid option");
@@ -257,75 +257,39 @@ async function main() {
           }
           break;
 
-      
-       // Purchase Order Management
-case "3":
-  let purchaseChoice = purchaseMenu();
-  while (purchaseChoice !== "0") {
-    switch (purchaseChoice) {
-      case "1":
-        await addPurchaseOrder();
-        break;
-      case "2":
-        await listAllPurchaseOrders();
-        break;
-      case "3": // Update a purchase order
-        const updateOrderId = readlineSync.questionInt("Enter the ID of the purchase order to update: ");
-        
-        // Retrieve the existing order details
-        try {
-          const existingOrder = await purchaseModule.getById(updateOrderId);
-          if (!existingOrder) {
-            console.log(`Purchase order with ID ${updateOrderId} not found.`);
-            break;
-          }
-          
-          console.log("Current details of the purchase order:");
-          console.log(existingOrder);
-
-          // Get the updated details from the user
-          const newOrderDate = readlineSync.question(`Enter the new order date (current: ${existingOrder.orderDate}): `) || existingOrder.orderDate;
-          const newDeliveryAddress = readlineSync.question(`Enter the new delivery address (current: ${existingOrder.deliveryAddress}): `) || existingOrder.deliveryAddress;
-          const newTrackNumber = readlineSync.question(`Enter the new track number (current: ${existingOrder.trackNumber}): `) || existingOrder.trackNumber;
-          const newOrderStatus = readlineSync.question(`Enter the new order status (current: ${existingOrder.status}): `) || existingOrder.status;
-
-          // Update the purchase order in the database
-          await purchaseModule.update(updateOrderId, newOrderDate, newDeliveryAddress, newTrackNumber, newOrderStatus);
-          console.log("Purchase order updated successfully.");
-          
-        } catch (error) {
-          console.error("Error updating purchase order:", error);
-        }
-        break;
-      
-      case "4": // Delete a purchase order
-        const deleteOrderId = readlineSync.questionInt("Enter the ID of the purchase order to delete: ");
-        
-        // Confirm deletion
-        const confirmDeletion = readlineSync.keyInYNStrict(`Are you sure you want to delete purchase order with ID ${deleteOrderId}?`);
-        if (confirmDeletion) {
-          try {
-            const deleteResult = await purchaseModule.destroy(deleteOrderId);
-            if (deleteResult > 0) {
-              console.log(`Purchase order with ID ${deleteOrderId} has been deleted.`);
-            } else {
-              console.log(`Purchase order with ID ${deleteOrderId} not found.`);
+        // Purchase Order Management
+        case "3":
+          let purchaseChoice = purchaseMenu();
+          while (purchaseChoice !== "0") {
+            switch (purchaseChoice) {
+              case "1":
+                await addPurchaseOrder();
+                break;
+              case "2":
+                await listAllPurchaseOrders();
+                break;
+              case "3":
+                const updateOrderId = readlineSync.questionInt("Enter the ID of the purchase order to update: ");
+                const newOrderDate = readlineSync.question("Enter the new order date (YYYY-MM-DD): ");
+                const newDeliveryAddress = readlineSync.question("Enter the new delivery address: ");
+                const newCustomerId = readlineSync.questionInt("Enter the new customer ID: ");
+                const newTrackNumber = readlineSync.question("Enter the new track number: ");
+                const newOrderStatus = readlineSync.question("Enter the new order status: ");
+                const updateResult = await purchaseModule.update(updateOrderId, newOrderDate, newDeliveryAddress, newCustomerId, newTrackNumber, newOrderStatus);
+                console.log(`Number of rows updated: ${updateResult}`);
+                break;
+              case "4":
+                const deleteOrderId = readlineSync.questionInt("Enter the ID of the purchase order to delete: ");
+                const deleteOrderResult = await purchaseModule.destroy(deleteOrderId);
+                console.log(`Number of rows deleted: ${deleteOrderResult}`);
+                break;
+              default:
+                console.log("Invalid option");
+                break;
             }
-          } catch (error) {
-            console.error("Error deleting purchase order:", error);
+            purchaseChoice = purchaseMenu();
           }
-        } else {
-          console.log("Deletion cancelled.");
-        }
-        break;
-      
-      default:
-        console.log("Invalid option");
-        break;
-    }
-    purchaseChoice = purchaseMenu();
-  }
-  break;
+          break;
 
         // Payment Management
         case "4":
@@ -373,12 +337,9 @@ case "3":
       }
       mainChoice = mainMenu();
     }
-    console.log("Exiting application...");
-    process.exit();
   } catch (error) {
-    console.error("Error:", error);
+    console.error("An unexpected error occurred:", error);
   }
 }
 
-// Run the main function
 main();
