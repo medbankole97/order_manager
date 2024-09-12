@@ -10,6 +10,7 @@ Ce projet est une application Node.js simple pour gérer des clients des produit
 
 - [Node.js](https://nodejs.org/) (version 14 ou supérieure)
 - [MySQL](https://www.mysql.com/) (version 5.7 ou supérieure)
+  
 
 ### Installation
  Suivez ces étapes pour configurer le projet sur votre machine locale :
@@ -24,7 +25,11 @@ Ce projet est une application Node.js simple pour gérer des clients des produit
    cd orderPaymentManagement
    ```
 
-3. **Configurez la base de données :**
+3. **Installer les dépendances :**
+   ```bash
+   npm install
+   ```
+4. **Configurez la base de données :**
 
     - Assurez-vous que Mysql est en cours d'exécution sur votre machine locale.
     - Mettez les paramètres de connexion dans `config/db.js`.
