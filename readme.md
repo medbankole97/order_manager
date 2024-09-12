@@ -71,7 +71,7 @@ ce module gère les opérations CRUD des de la table **products**.
 
 ### Schéma CMD et MLD
 
-![](/src/assets/images/CMD.jpg)
+![](/src/assets/images/MCD.jpg)
 
 ![](/src/assets/images/MLD.png)
 
