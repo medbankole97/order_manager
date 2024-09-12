@@ -166,11 +166,6 @@ async function listAllPurchaseOrders() {
   }
 }
 
-
-
-/*             */
-
-
 async function main() {
   try {
     let mainChoice = mainMenu();
