@@ -1,4 +1,4 @@
-# Database_Crud
+# orderPaymentManagement
 
 ## Description du Projet
 
@@ -16,12 +16,12 @@ Ce projet est une application Node.js simple pour gérer des clients des produit
 
 1. **Clonez le dépôt du projet :**
    ```bash
-   git clone https://github.com/medbankole97/databaseCrud_brief.git
+   git clone https://github.com/medbankole97/orderPaymentManagement.git
    ```
 
 2. **Accédez au dossier du projet :**
    ```bash
-   cd databaseCrud_brief
+   cd orderPaymentManagement
    ```
 
 3. **Configurez la base de données :**

@@ -65,6 +65,7 @@ function paymentMenu() {
 }
 
 // Function to handle adding a purchase order
+// Functions for managing purchase orders
 async function addPurchaseOrder() {
   const orderDate = readlineSync.question("Enter the order date (YYYY-MM-DD): ");
   const deliveryAddress = readlineSync.question("Enter the delivery address: ");
@@ -72,7 +73,6 @@ async function addPurchaseOrder() {
   const trackNumber = readlineSync.question("Enter the track number: ");
   const orderStatus = readlineSync.question("Enter the order status: ");
 
-  // Stocker temporairement la commande et ses produits
   const orderDetails = {
     orderDate,
     deliveryAddress,
@@ -83,53 +83,92 @@ async function addPurchaseOrder() {
   };
 
   let addMoreProducts = true;
-    
-  // Boucle pour ajouter plusieurs produits
+
   while (addMoreProducts) {
     const productId = readlineSync.questionInt("Enter the product ID: ");
     const quantity = readlineSync.questionInt("Enter the quantity: ");
     const price = readlineSync.questionFloat("Enter the price: ");
 
-    // Ajouter le produit à la commande temporaire
     orderDetails.products.push({ productId, quantity, price });
 
-    // Permettre à l'utilisateur de choisir une action après avoir ajouté un produit
     const action = readlineSync.keyInSelect(
       ["Add Another Product", "Save and Exit", "Quit Without Saving"], 
       "Choose an action: "
     );
-    
-    // Action choisie par l'utilisateur
-    if (action === 0) { // Ajouter un autre produit
-      console.log("Add a product...");
-    } else if (action === 1) { // Sauvegarder et quitter
-      console.log("Review of the order details..");
+
+    if (action === 0) {
+      console.log("Add another product...");
+    } else if (action === 1) {
+      console.log("Review of the order details...");
       console.log(orderDetails);
-      const confirmation = readlineSync.keyInYN("Confirm the recording of this orde?");
+
+      const confirmation = readlineSync.keyInYNStrict("Confirm the recording of this order?");
       if (confirmation) {
-        // Sauvegarder dans la base de données
-        const orderId = await purchaseModule.add(
-          orderDetails.orderDate, 
-          orderDetails.deliveryAddress, 
-          orderDetails.customerId, 
-          orderDetails.trackNumber, 
-          orderDetails.orderStatus
-        );
-        for (const product of orderDetails.products) {
-          await purchaseModule.addProductToOrder(orderId, product.productId, product.quantity, product.price);
+        try {
+          const orderId = await purchaseModule.add(
+            orderDetails.orderDate, 
+            orderDetails.deliveryAddress, 
+            orderDetails.customerId, 
+            orderDetails.trackNumber, 
+            orderDetails.orderStatus
+          );
+
+          for (const product of orderDetails.products) {
+            await purchaseModule.addProductToOrder(orderId, product.productId, product.quantity, product.price);
+          }
+
+          console.log(`Order saved with ID: ${orderId}`);
+        } catch (error) {
+          console.error("Error saving the order:", error);
         }
-        console.log(`Order saved with ID: ${orderId}`);
       } else {
-        console.log("Order no saved with ID.");
+        console.log("Order not saved.");
       }
-      addMoreProducts = false; // Terminer la boucle
-    } else { // Quitter sans sauvegarder
-      console.log("Order saved with .");
-      addMoreProducts = false; // Terminer la boucle
+      addMoreProducts = false;
+    } else {
+      console.log("Order not saved.");
+      addMoreProducts = false;
     }
   }
 }
 
+async function listAllPurchaseOrders() {
+  try {
+    const purchaseOrders = await purchaseModule.get(); // Récupère toutes les commandes avec leurs détails
+
+    if (purchaseOrders.length === 0) {
+      console.log("No purchase orders found.");
+      return;
+    }
+
+    for (const order of purchaseOrders) {
+      console.log(`\nOrder ID: ${order.id}`);
+      console.log(`Order Date: ${order.date}`);
+      console.log(`Delivery Address: ${order.delivery_address}`);
+      console.log(`Customer ID: ${order.customer_id}`);
+      console.log(`Tracking Number: ${order.track_number}`);
+      console.log(`Order Status: ${order.status}`);
+
+      if (!order.details || order.details.length === 0) {
+        console.log("No products in this order.");
+      } else {
+        console.log("\n>>> Order Details:");
+        // console.log("Order Details:");
+        order.details.forEach((detail) => {
+          console.log(`  Product ID: ${detail.productId}`);
+          console.log(`  Quantity: ${detail.quantity}`);
+          console.log(`  Price: ${detail.price}`);
+        });
+      }
+    }
+  } catch (error) {
+    console.error("Error retrieving purchase orders:", error);
+  }
+}
+
+
+
+/*             */
 
 
 async function main() {
@@ -223,41 +262,75 @@ async function main() {
           }
           break;
 
-        // Purchase Order Management
-        case "3":
-          let purchaseChoice = purchaseMenu();
-          while (purchaseChoice !== "0") {
-            switch (purchaseChoice) {
-              case "1":
-                await addPurchaseOrder();
-                break;
-              case "2":
-                const purchaseOrders = await purchaseModule.get();
-                console.log("List of purchase orders:");
-                console.log(purchaseOrders);
-                break;
-              case "3":
-                const updateOrderId = readlineSync.questionInt("Enter the ID of the order to update: ");
-                const newOrderDate = readlineSync.question("Enter the new order date (YYYY-MM-DD): ");
-                const newDeliveryAddress = readlineSync.question("Enter the new delivery address: ");
-                const newCustomerId = readlineSync.questionInt("Enter the new customer ID: ");
-                const newTrackNumber = readlineSync.question("Enter the new track number: ");
-                const newOrderStatus = readlineSync.question("Enter the new order status: ");
-                const updateOrderResult = await purchaseModule.update(updateOrderId, newOrderDate, newDeliveryAddress, newCustomerId, newTrackNumber, newOrderStatus);
-                console.log(`Number of rows updated: ${updateOrderResult}`);
-                break;
-              case "4":
-                const deleteOrderId = readlineSync.questionInt("Enter the ID of the order to delete: ");
-                const deleteOrderResult = await purchaseModule.destroy(deleteOrderId);
-                console.log(`Number of rows deleted: ${deleteOrderResult}`);
-                break;
-              default:
-                console.log("Invalid option");
-                break;
-            }
-            purchaseChoice = purchaseMenu();
+      
+       // Purchase Order Management
+case "3":
+  let purchaseChoice = purchaseMenu();
+  while (purchaseChoice !== "0") {
+    switch (purchaseChoice) {
+      case "1":
+        await addPurchaseOrder();
+        break;
+      case "2":
+        await listAllPurchaseOrders();
+        break;
+      case "3": // Update a purchase order
+        const updateOrderId = readlineSync.questionInt("Enter the ID of the purchase order to update: ");
+        
+        // Retrieve the existing order details
+        try {
+          const existingOrder = await purchaseModule.getById(updateOrderId);
+          if (!existingOrder) {
+            console.log(`Purchase order with ID ${updateOrderId} not found.`);
+            break;
           }
-          break;
+          
+          console.log("Current details of the purchase order:");
+          console.log(existingOrder);
+
+          // Get the updated details from the user
+          const newOrderDate = readlineSync.question(`Enter the new order date (current: ${existingOrder.orderDate}): `) || existingOrder.orderDate;
+          const newDeliveryAddress = readlineSync.question(`Enter the new delivery address (current: ${existingOrder.deliveryAddress}): `) || existingOrder.deliveryAddress;
+          const newTrackNumber = readlineSync.question(`Enter the new track number (current: ${existingOrder.trackNumber}): `) || existingOrder.trackNumber;
+          const newOrderStatus = readlineSync.question(`Enter the new order status (current: ${existingOrder.status}): `) || existingOrder.status;
+
+          // Update the purchase order in the database
+          await purchaseModule.update(updateOrderId, newOrderDate, newDeliveryAddress, newTrackNumber, newOrderStatus);
+          console.log("Purchase order updated successfully.");
+          
+        } catch (error) {
+          console.error("Error updating purchase order:", error);
+        }
+        break;
+      
+      case "4": // Delete a purchase order
+        const deleteOrderId = readlineSync.questionInt("Enter the ID of the purchase order to delete: ");
+        
+        // Confirm deletion
+        const confirmDeletion = readlineSync.keyInYNStrict(`Are you sure you want to delete purchase order with ID ${deleteOrderId}?`);
+        if (confirmDeletion) {
+          try {
+            const deleteResult = await purchaseModule.destroy(deleteOrderId);
+            if (deleteResult > 0) {
+              console.log(`Purchase order with ID ${deleteOrderId} has been deleted.`);
+            } else {
+              console.log(`Purchase order with ID ${deleteOrderId} not found.`);
+            }
+          } catch (error) {
+            console.error("Error deleting purchase order:", error);
+          }
+        } else {
+          console.log("Deletion cancelled.");
+        }
+        break;
+      
+      default:
+        console.log("Invalid option");
+        break;
+    }
+    purchaseChoice = purchaseMenu();
+  }
+  break;
 
         // Payment Management
         case "4":
