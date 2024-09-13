@@ -73,17 +73,31 @@ async function update(orderId, orderDate, deliveryAddress, customerId, trackNumb
 
 // Mettre à jour un détail de commande
 async function updateOrderDetail(orderId, productId, newQuantity, newPrice) {
-  try {
-    const [result] = await db.query(
-      'UPDATE order_details SET quantity = ?, price = ? WHERE order_id = ? AND product_id = ?',
-      [newQuantity, newPrice, orderId, productId]
-    );
-    return result.affectedRows; // Nombre de lignes affectées
-  } catch (error) {
-    console.error("Error updating order detail:", error);
-    throw error;
+  // Check if the order exists
+  const order = await db.query('SELECT * FROM purchase_orders WHERE id = ?', [orderId]);
+  if (!order.length) {
+    throw new Error("Order not found");
   }
+
+  // Check if the product exists in the order
+  const orderDetail = await db.query(
+    'SELECT * FROM order_details WHERE order_id = ? AND product_id = ?',
+    [orderId, productId]
+  );
+  
+  if (!orderDetail.length) {
+    throw new Error("Order detail not found");
+  }
+
+  // Update the quantity and price in the order details
+  const result = await db.query(
+    'UPDATE order_details SET quantity = ?, price = ? WHERE order_id = ? AND product_id = ?',
+    [newQuantity, newPrice, orderId, productId]
+  );
+
+  return result.affectedRows; // Return the number of rows affected
 }
+
 
 // Ajouter ou mettre à jour un produit dans une commande
 async function addOrUpdateOrderLine(orderId, productId, quantity, price) {

@@ -74,7 +74,7 @@ ce module gère les opérations CRUD des de la table **products**.
 - `destroy(id)`: Supprime un payement
 
 
-### Schéma CMD et MLD
+### Schéma MCD et MLD
 
 ![](/src/assets/images/MCD.jpg)
 

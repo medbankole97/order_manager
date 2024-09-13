@@ -42,15 +42,17 @@ function productMenu() {
 
 // Submenu for managing purchase orders
 function purchaseMenu() {
-  console.log("\n***** PURCHASE ORDER MANAGEMENT *****");
-  console.log("1. Add a purchase order");
-  console.log("2. List all purchase orders");
-  console.log("3. Update a purchase order");
-  console.log("4. Delete a purchase order");
-  console.log("0. Return to main menu");
+  console.log("\n***** ORDER MANAGEMENT *****");
+  console.log("1. Add a new order");
+  console.log("2. List all orders");
+  console.log("3. Edit an order");
+  console.log("4. Edit order details");  // New option for editing order details
+  console.log("5. Delete an order");
+  console.log("0. Return to the main menu");
   const choice = readlineSync.question("Your choice: ");
   return choice;
 }
+
 
 // Submenu for managing payments
 function paymentMenu() {
@@ -130,6 +132,29 @@ async function addPurchaseOrder() {
     }
   }
 }
+/*     */
+async function modifyOrderDetails() {
+  const orderId = readlineSync.questionInt("Enter the ID of the order to modify: ");
+  const productId = readlineSync.questionInt("Enter the product ID to modify in the order: ");
+  const newQuantity = readlineSync.questionInt("Enter the new quantity: ");
+  const newPrice = readlineSync.questionFloat("Enter the new price: ");
+  
+  try {
+    const updatedRows = await purchaseModule.updateOrderDetail(orderId, productId, newQuantity, newPrice);
+    if (updatedRows > 0) {
+      console.log("Order details successfully updated!");
+    } else {
+      console.log("No changes made to the order details.");
+    }
+  } catch (error) {
+    console.error("Error updating the order details:", error.message);
+  }
+}
+
+
+
+
+/*  */
 
 // Function to list all purchase orders
 async function listAllPurchaseOrders() {
@@ -279,6 +304,9 @@ async function main() {
                 console.log(`Number of rows updated: ${updateResult}`);
                 break;
               case "4":
+                  await modifyOrderDetails();
+                  break;  
+              case "5":
                 const deleteOrderId = readlineSync.questionInt("Enter the ID of the purchase order to delete: ");
                 const deleteOrderResult = await purchaseModule.destroy(deleteOrderId);
                 console.log(`Number of rows deleted: ${deleteOrderResult}`);
