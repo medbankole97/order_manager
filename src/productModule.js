@@ -1,5 +1,15 @@
 const pool = require("./config/db");
 
+
+// Function to check if a product exists by ID
+async function productExists(id) {
+  const [rows] = await connection.execute(
+    'SELECT COUNT(*) AS count FROM products WHERE id = ?',
+    [id]
+  );
+  return rows[0].count > 0;
+}
+
 // Récupérer tous les produits
 async function get() {
   const connection = await pool.getConnection();
@@ -96,4 +106,4 @@ async function destroy(id) {
   }
 }
 
-module.exports = { get, add, update, destroy, exists }; // Ajout de la fonction 'exists' dans les exports
+module.exports = { get, add, update, destroy, productExists, exists }; // Ajout de la fonction 'exists' dans les exports

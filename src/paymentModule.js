@@ -1,5 +1,14 @@
 const pool = require("./config/db");
 
+
+// Function to check if a payment exists by ID
+async function paymentExists(id) {
+  const [rows] = await connection.execute(
+    'SELECT COUNT(*) AS count FROM payments WHERE id = ?',
+    [id]
+  );
+  return rows[0].count > 0;
+}
 // Récupérer tous les paiements
 async function get() {
   const connection = await pool.getConnection();
@@ -99,4 +108,4 @@ async function destroy(id) {
   }
 }
 
-module.exports = { get, add, update, destroy, exists }; // Ajout de la fonction 'exists' dans les exports
+module.exports = { get, add, update, destroy, paymentExists,exists }; // Ajout de la fonction 'exists' dans les exports

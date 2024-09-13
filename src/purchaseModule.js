@@ -1,5 +1,15 @@
 const db = require("./config/db");
 
+// Function to check if an order exists by ID
+async function orderExists(id) {
+  const [rows] = await connection.execute(
+    'SELECT COUNT(*) AS count FROM purchase_orders WHERE id = ?',
+    [id]
+  );
+  return rows[0].count > 0;
+}
+
+
 // Vérifier si un client existe
 async function checkCustomerExists(customerId) {
   if (isNaN(customerId)) {
@@ -212,6 +222,7 @@ module.exports = {
   get,
   update,
   destroy,
-  updateOrderDetail, // Nouvelle fonction ajoutée
-  addOrUpdateOrderLine // Nouvelle fonction ajoutée
+  orderExists,
+  updateOrderDetail, 
+  addOrUpdateOrderLine 
 };
