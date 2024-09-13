@@ -2,6 +2,9 @@ const db = require("./config/db");
 
 // Vérifier si un client existe
 async function checkCustomerExists(customerId) {
+  if (isNaN(customerId)) {
+    throw new Error("Customer ID must be a number.");
+  }
   try {
     const [rows] = await db.query('SELECT id FROM customers WHERE id = ?', [customerId]);
     return rows.length > 0; // Retourne true si le client existe, sinon false
@@ -13,6 +16,14 @@ async function checkCustomerExists(customerId) {
 
 // Ajouter une commande d'achat
 async function add(orderDate, deliveryAddress, customerId, trackNumber, status) {
+  if (isNaN(new Date(orderDate).getTime())) {
+    throw new Error("Invalid order date.");
+  }
+
+  if (typeof trackNumber !== 'string' || trackNumber.trim() === '') {
+    throw new Error("Track number must be a non-empty string.");
+  }
+
   try {
     // Vérifie si le client existe
     const customerExists = await checkCustomerExists(customerId);
@@ -38,6 +49,14 @@ async function add(orderDate, deliveryAddress, customerId, trackNumber, status) 
 
 // Ajouter un produit à une commande spécifique
 async function addProductToOrder(orderId, productId, quantity, price) {
+  if (isNaN(quantity) || quantity <= 0) {
+    throw new Error("Quantity must be a positive number.");
+  }
+  
+  if (isNaN(price) || price <= 0) {
+    throw new Error("Price must be a positive number.");
+  }
+
   try {
     const [result] = await db.query(
       'INSERT INTO order_details (quantity, price, order_id, product_id) VALUES (?, ?, ?, ?)',
@@ -52,6 +71,14 @@ async function addProductToOrder(orderId, productId, quantity, price) {
 
 // Mettre à jour une commande
 async function update(orderId, orderDate, deliveryAddress, customerId, trackNumber, status) {
+  if (isNaN(new Date(orderDate).getTime())) {
+    throw new Error("Invalid order date.");
+  }
+
+  if (typeof trackNumber !== 'string' || trackNumber.trim() === '') {
+    throw new Error("Track number must be a non-empty string.");
+  }
+
   try {
     // Vérifier si la commande existe avant la mise à jour
     const [order] = await db.query('SELECT id FROM purchase_orders WHERE id = ?', [orderId]);
@@ -73,14 +100,22 @@ async function update(orderId, orderDate, deliveryAddress, customerId, trackNumb
 
 // Mettre à jour un détail de commande
 async function updateOrderDetail(orderId, productId, newQuantity, newPrice) {
+  if (isNaN(newQuantity) || newQuantity <= 0) {
+    throw new Error("Quantity must be a positive number.");
+  }
+  
+  if (isNaN(newPrice) || newPrice <= 0) {
+    throw new Error("Price must be a positive number.");
+  }
+
   // Check if the order exists
-  const order = await db.query('SELECT * FROM purchase_orders WHERE id = ?', [orderId]);
+  const [order] = await db.query('SELECT * FROM purchase_orders WHERE id = ?', [orderId]);
   if (!order.length) {
     throw new Error("Order not found");
   }
 
   // Check if the product exists in the order
-  const orderDetail = await db.query(
+  const [orderDetail] = await db.query(
     'SELECT * FROM order_details WHERE order_id = ? AND product_id = ?',
     [orderId, productId]
   );
@@ -90,7 +125,7 @@ async function updateOrderDetail(orderId, productId, newQuantity, newPrice) {
   }
 
   // Update the quantity and price in the order details
-  const result = await db.query(
+  const [result] = await db.query(
     'UPDATE order_details SET quantity = ?, price = ? WHERE order_id = ? AND product_id = ?',
     [newQuantity, newPrice, orderId, productId]
   );
@@ -98,9 +133,16 @@ async function updateOrderDetail(orderId, productId, newQuantity, newPrice) {
   return result.affectedRows; // Return the number of rows affected
 }
 
-
 // Ajouter ou mettre à jour un produit dans une commande
 async function addOrUpdateOrderLine(orderId, productId, quantity, price) {
+  if (isNaN(quantity) || quantity <= 0) {
+    throw new Error("Quantity must be a positive number.");
+  }
+  
+  if (isNaN(price) || price <= 0) {
+    throw new Error("Price must be a positive number.");
+  }
+
   try {
     // Vérifier si la ligne de commande existe déjà
     const [existingLine] = await db.query(

@@ -1,4 +1,4 @@
-# orderPaymentManagement
+# Order Management
 
 ## Description du Projet
 
@@ -17,12 +17,12 @@ Ce projet est une application Node.js simple pour gérer des clients des produit
 
 1. **Clonez le dépôt du projet :**
    ```bash
-   git clone https://github.com/medbankole97/orderPaymentManagement.git
+   git clone https://github.com/medbankole97/order_manager.git
    ```
 
 2. **Accédez au dossier du projet :**
    ```bash
-   cd orderPaymentManagement
+   cd order_manager
    ```
 
 3. **Installer les dépendances :**
