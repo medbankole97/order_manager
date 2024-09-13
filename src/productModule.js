@@ -1,47 +1,58 @@
 const pool = require("./config/db");
 
+// Récupérer tous les produits
 async function get() {
   const connection = await pool.getConnection();
   try {
     const [rows, _fields] = await connection.execute("SELECT * FROM products");
     return rows;
   } catch (error) {
+    console.error("Error retrieving products:", error);
     throw error;
   } finally {
     connection.release();
   }
 }
 
+// Ajouter un produit
 async function add(name, description, price, stock, category, barcode, status) {
   const connection = await pool.getConnection();
   try {
     const [result] = await connection.execute(
-      "INSERT INTO products (name, description, price, stock, category, barcode, status) values (?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO products (name, description, price, stock, category, barcode, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
       [name, description, price, stock, category, barcode, status]
     );
-    return result.insertId;
+    if (result && result.insertId) {
+      return result.insertId; // Retourne l'ID du nouveau produit ajouté
+    } else {
+      throw new Error("Failed to retrieve insertId from the database");
+    }
   } catch (error) {
+    console.error("Error adding product:", error);
     throw error;
   } finally {
     connection.release();
   }
 }
 
+// Vérifier si un produit existe
 async function exists(id) {
   const connection = await pool.getConnection();
   try {
     const [rows] = await connection.execute(
-      "SELECT COUNT(*) as count FROM products WHERE id = ?",
+      "SELECT COUNT(*) AS count FROM products WHERE id = ?",
       [id]
     );
-    return rows[0].count > 0;
+    return rows[0].count > 0; // Retourne true si le produit existe, sinon false
   } catch (error) {
+    console.error("Error checking product existence:", error);
     throw error;
   } finally {
     connection.release();
   }
 }
 
+// Mettre à jour un produit
 async function update(id, name, description, price, stock, category, barcode, status) {
   const connection = await pool.getConnection();
   try {
@@ -54,14 +65,16 @@ async function update(id, name, description, price, stock, category, barcode, st
       "UPDATE products SET name = ?, description = ?, price = ?, stock = ?, category = ?, barcode = ?, status = ? WHERE id = ?",
       [name, description, price, stock, category, barcode, status, id]
     );
-    return result.affectedRows;
+    return result.affectedRows; // Retourne le nombre de lignes affectées
   } catch (error) {
+    console.error("Error updating product:", error);
     throw error;
   } finally {
     connection.release();
   }
 }
 
+// Supprimer un produit
 async function destroy(id) {
   const connection = await pool.getConnection();
   try {
@@ -70,19 +83,17 @@ async function destroy(id) {
       throw new Error(`The product with ID ${id} does not exist.`);
     }
 
-    const [result] = await connection.execute(
-      "DELETE FROM products WHERE id = ?",
-      [id]
-    );
-    return result.affectedRows;
+    const [result] = await connection.execute("DELETE FROM products WHERE id = ?", [id]);
+    return result.affectedRows; // Retourne le nombre de lignes supprimées
   } catch (error) {
     if (error.code && error.code === "ER_ROW_IS_REFERENCED_2") {
       throw new Error(`Deletion error: The product with ID ${id} is referenced elsewhere.`);
     }
+    console.error("Error deleting product:", error);
     throw error;
   } finally {
     connection.release();
   }
 }
 
-module.exports = { get, add, update, destroy };
+module.exports = { get, add, update, destroy, exists }; // Ajout de la fonction 'exists' dans les exports
