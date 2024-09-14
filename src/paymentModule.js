@@ -16,7 +16,7 @@ async function get() {
     const [rows, _fields] = await connection.execute("SELECT * FROM payments");
     return rows;
   } catch (error) {
-    console.error("Error retrieving payments:", error);
+    console.error("Error retrieving payments:");
     throw error;
   } finally {
     connection.release();
@@ -37,7 +37,7 @@ async function add(payment_date, amount, payment_method, order_id) {
       throw new Error("Failed to retrieve insertId from the database");
     }
   } catch (error) {
-    console.error("Error adding payment:", error);
+    console.error("Error adding payment:");
     throw error;
   } finally {
     connection.release();
@@ -54,7 +54,7 @@ async function exists(id) {
     );
     return rows[0].count > 0; // Retourne true si le paiement existe, sinon false
   } catch (error) {
-    console.error("Error checking payment existence:", error);
+    console.error("Error checking payment existence:");
     throw error;
   } finally {
     connection.release();
@@ -76,7 +76,7 @@ async function update(id, payment_date, amount, payment_method, order_id) {
     );
     return result.affectedRows; // Retourne le nombre de lignes affectées
   } catch (error) {
-    console.error("Error updating payment:", error);
+    console.error("Error updating payment:");
     throw error;
   } finally {
     connection.release();
@@ -101,11 +101,11 @@ async function destroy(id) {
     if (error.code && error.code === "ER_ROW_IS_REFERENCED_2") {
       throw new Error(`Deletion error: The payment with ID ${id} is referenced elsewhere.`);
     }
-    console.error("Error deleting payment:", error);
+    console.error("Error deleting payment:");
     throw error;
   } finally {
     connection.release();
   }
 }
 
-module.exports = { get, add, update, destroy, paymentExists,exists }; // Ajout de la fonction 'exists' dans les exports
+module.exports = { get, add, update, destroy, paymentExists,exists }; 
