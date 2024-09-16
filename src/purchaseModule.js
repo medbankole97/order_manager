@@ -1,4 +1,4 @@
-const db = require("./config/db");
+const connPool = require("./config/db");
 
 // Function to check if an order exists by ID
 async function orderExists(id) {
@@ -10,16 +10,44 @@ async function orderExists(id) {
 }
 
 
+// Récupérer une commande par ID
+async function getById(orderId) {
+  try {
+    const [rows] = await connPool.query(
+      'SELECT id, date, delivery_address, customer_id, track_number, status FROM purchase_orders WHERE id = ?',
+      [orderId]
+    );
+    
+    if (rows.length === 0) {
+      return null; // La commande n'existe pas
+    }
+    
+    // Récupérer les détails associés à la commande
+    const [details] = await connPool.query(
+      'SELECT product_id AS productId, quantity, price FROM order_details WHERE order_id = ?',
+      [orderId]
+    );
+    
+    const order = rows[0]; // La commande principale
+    order.details = details; // Ajoute les détails de la commande
+    
+    return order; // Retourne la commande avec ses détails
+  } catch (error) {
+    console.error("Error retrieving order by ID:");
+    throw error;
+  }
+}
+
 // Vérifier si un client existe
 async function checkCustomerExists(customerId) {
   if (isNaN(customerId)) {
     throw new Error("Customer ID must be a number.");
   }
   try {
-    const [rows] = await db.query('SELECT id FROM customers WHERE id = ?', [customerId]);
+    const [rows] = await connPool.query('SELECT id FROM customers WHERE id = ?', [customerId]);
     return rows.length > 0; // Retourne true si le client existe, sinon false
   } catch (error) {
-    console.error("Error checking customer existence:", error);
+    console.error("Error checking customer existence:");
     throw error;
   }
 }
@@ -41,7 +69,7 @@ async function add(orderDate, deliveryAddress, customerId, trackNumber, status) 
       throw new Error("Customer ID does not exist.");
     }
 
-    const [result] = await db.query(
+    const [result] = await connPool.query(
       'INSERT INTO purchase_orders (date, delivery_address, customer_id, track_number, status) VALUES (?, ?, ?, ?, ?)',
       [orderDate, deliveryAddress, customerId, trackNumber, status]
     );
@@ -52,7 +80,7 @@ async function add(orderDate, deliveryAddress, customerId, trackNumber, status) 
       throw new Error("Failed to retrieve insertId from the database");
     }
   } catch (error) {
-    console.error("Error adding purchase order:", error);
+    console.error("Error adding purchase order:");
     throw error;
   }
 }
@@ -68,13 +96,13 @@ async function addProductToOrder(orderId, productId, quantity, price) {
   }
 
   try {
-    const [result] = await db.query(
+    const [result] = await connPool.query(
       'INSERT INTO order_details (quantity, price, order_id, product_id) VALUES (?, ?, ?, ?)',
       [quantity, price, orderId, productId]
     );
     return result.affectedRows;
   } catch (error) {
-    console.error("Error adding product to order:", error);
+    console.error("Error adding product to order:");
     throw error;
   }
 }
@@ -91,19 +119,19 @@ async function update(orderId, orderDate, deliveryAddress, customerId, trackNumb
 
   try {
     // Vérifier si la commande existe avant la mise à jour
-    const [order] = await db.query('SELECT id FROM purchase_orders WHERE id = ?', [orderId]);
+    const [order] = await connPool.query('SELECT id FROM purchase_orders WHERE id = ?', [orderId]);
     if (order.length === 0) {
       throw new Error("Order not found.");
     }
 
     // Mettre à jour les détails de la commande
-    const [result] = await db.query(
+    const [result] = await connPool.query(
       'UPDATE purchase_orders SET date = ?, delivery_address = ?, customer_id = ?, track_number = ?, status = ? WHERE id = ?',
       [orderDate, deliveryAddress, customerId, trackNumber, status, orderId]
     );
     return result.affectedRows; // Nombre de lignes affectées
   } catch (error) {
-    console.error("Error updating purchase order:", error);
+    console.error("Error updating purchase order:");
     throw error;
   }
 }
@@ -119,13 +147,13 @@ async function updateOrderDetail(orderId, productId, newQuantity, newPrice) {
   }
 
   // Check if the order exists
-  const [order] = await db.query('SELECT * FROM purchase_orders WHERE id = ?', [orderId]);
+  const [order] = await connPool.query('SELECT * FROM purchase_orders WHERE id = ?', [orderId]);
   if (!order.length) {
     throw new Error("Order not found");
   }
 
   // Check if the product exists in the order
-  const [orderDetail] = await db.query(
+  const [orderDetail] = await connPool.query(
     'SELECT * FROM order_details WHERE order_id = ? AND product_id = ?',
     [orderId, productId]
   );
@@ -135,7 +163,7 @@ async function updateOrderDetail(orderId, productId, newQuantity, newPrice) {
   }
 
   // Update the quantity and price in the order details
-  const [result] = await db.query(
+  const [result] = await connPool.query(
     'UPDATE order_details SET quantity = ?, price = ? WHERE order_id = ? AND product_id = ?',
     [newQuantity, newPrice, orderId, productId]
   );
@@ -155,28 +183,28 @@ async function addOrUpdateOrderLine(orderId, productId, quantity, price) {
 
   try {
     // Vérifier si la ligne de commande existe déjà
-    const [existingLine] = await db.query(
+    const [existingLine] = await connPool.query(
       'SELECT id FROM order_details WHERE order_id = ? AND product_id = ?',
       [orderId, productId]
     );
 
     if (existingLine.length > 0) {
       // Mettre à jour la ligne de commande existante
-      const [result] = await db.query(
+      const [result] = await connPool.query(
         'UPDATE order_details SET quantity = ?, price = ? WHERE order_id = ? AND product_id = ?',
         [quantity, price, orderId, productId]
       );
       return result.affectedRows; // Nombre de lignes affectées
     } else {
       // Ajouter une nouvelle ligne de commande
-      const [result] = await db.query(
+      const [result] = await connPool.query(
         'INSERT INTO order_details (quantity, price, order_id, product_id) VALUES (?, ?, ?, ?)',
         [quantity, price, orderId, productId]
       );
       return result.affectedRows; // Nombre de lignes affectées
     }
   } catch (error) {
-    console.error("Error adding or updating order line:", error);
+    console.error("Error adding or updating order line:");
     throw error;
   }
 }
@@ -185,13 +213,13 @@ async function addOrUpdateOrderLine(orderId, productId, quantity, price) {
 async function get() {
   try {
     // Récupère toutes les commandes
-    const [orders] = await db.query(
+    const [orders] = await connPool.query(
       'SELECT id, date, delivery_address, customer_id, track_number, status FROM purchase_orders'
     );
 
     // Pour chaque commande, récupère les détails correspondants
     for (const order of orders) {
-      const [details] = await db.query(
+      const [details] = await connPool.query(
         'SELECT product_id AS productId, quantity, price FROM order_details WHERE order_id = ?',
         [order.id]
       );
@@ -200,7 +228,7 @@ async function get() {
 
     return orders; // Retourne toutes les commandes avec leurs détails
   } catch (error) {
-    console.error("Error retrieving purchase orders:", error);
+    console.error("Error retrieving purchase orders:");
     throw error;
   }
 }
@@ -208,10 +236,10 @@ async function get() {
 // Supprimer une commande
 async function destroy(orderId) {
   try {
-    const [result] = await db.query('DELETE FROM purchase_orders WHERE id = ?', [orderId]);
+    const [result] = await connPool.query('DELETE FROM purchase_orders WHERE id = ?', [orderId]);
     return result.affectedRows; // Nombre de lignes supprimées
   } catch (error) {
-    console.error("Error deleting purchase order:", error);
+    console.error("Error deleting purchase order:" );
     throw error;
   }
 }
@@ -224,5 +252,6 @@ module.exports = {
   destroy,
   orderExists,
   updateOrderDetail, 
-  addOrUpdateOrderLine 
+  addOrUpdateOrderLine,
+  getById
 };
