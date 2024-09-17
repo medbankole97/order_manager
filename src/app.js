@@ -98,19 +98,25 @@ async function addPurchaseOrder() {
       deliveryAddress = readlineSync.question("Enter the delivery address: ");
     }
 
-    const customerId = readlineSync.questionInt("Enter the customer ID: ");
-    while (isNaN(customerId) || customerId <= 0) {
-      console.log("\nPlease enter a valid customer ID.");
+    let customerId;
+    let validCustomer = false;
+    while (!validCustomer) {
       customerId = readlineSync.questionInt("Enter the customer ID: ");
+      const customerExists = await purchaseModule.checkCustomerExists(customerId);
+      if (customerExists) {
+        validCustomer = true;
+      } else {
+        console.log("\nThe customer ID does not exist. Please enter a valid customer ID.");
+      }
     }
 
-    const trackNumber = readlineSync.question("Enter the track number: ");
+    let trackNumber = readlineSync.question("Enter the track number: ");
     while (!trackNumber) {
       console.log("\nPlease enter the track number.");
       trackNumber = readlineSync.question("Enter the track number: ");
     }
 
-    const orderStatus = readlineSync.question("Enter the order status: ");
+    let orderStatus = readlineSync.question("Enter the order status: ");
     while (!orderStatus) {
       console.log("\nPlease enter the order status.");
       orderStatus = readlineSync.question("Enter the order status: ");
@@ -126,22 +132,29 @@ async function addPurchaseOrder() {
     };
 
     let addMoreProducts = true;
+    let validProducts = true; 
 
     while (addMoreProducts) {
-      const productId = readlineSync.questionInt("Enter the product ID: ");
-      while (isNaN(productId) || productId <= 0) {
-        console.log("\nPlease enter a valid product ID.");
+      let productId;
+      let validProduct = false;
+      while (!validProduct) {
         productId = readlineSync.questionInt("Enter the product ID: ");
+        const productExists = await purchaseModule.checkProductExists(productId);
+        if (productExists) {
+          validProduct = true;
+        } else {
+          console.log("\nThe product ID does not exist. Please enter a valid product ID.");
+        }
       }
 
-      const quantity = readlineSync.questionInt("Enter the quantity: ");
+      let quantity = readlineSync.questionInt("Enter the quantity: ");
       while (isNaN(quantity) || quantity <= 0) {
         console.log("\nPlease enter a valid quantity.");
         quantity = readlineSync.questionInt("Enter the quantity: ");
       }
 
-      const price = readlineSync.questionFloat("Enter the price: ");
-      while (isNaN(price) || price <= 0) {
+      let price = readlineSync.questionFloat("Enter the price: ");
+      while (isNaN(price) || price < 0) { // Accepter 0 comme valeur valide
         console.log("\nPlease enter a valid price.");
         price = readlineSync.questionFloat("Enter the price: ");
       }
@@ -155,41 +168,43 @@ async function addPurchaseOrder() {
 
       if (action === 0) {
         console.log("Add another product...");
-      } else if (action === 1) {
-        console.log("Review of the order details...");
-        console.log(orderDetails);
-
-        const confirmation = readlineSync.keyInYNStrict("Confirm the recording of this order?");
-        if (confirmation) {
-          try {
-            const orderId = await purchaseModule.add(
-              orderDetails.orderDate, 
-              orderDetails.deliveryAddress, 
-              orderDetails.customerId, 
-              orderDetails.trackNumber, 
-              orderDetails.orderStatus
-            );
-
-            for (const product of orderDetails.products) {
-              await purchaseModule.addProductToOrder(orderId, product.productId, product.quantity, product.price);
-            }
-
-            console.log(`Order saved with ID: ${orderId}`);
-
-          } catch (error) {
-            console.error("Error saving the order:");
-          }
-        } else {
-          console.log("Order not saved.");
-        }
-        addMoreProducts = false;
       } else {
-        console.log("Order not saved.");
         addMoreProducts = false;
       }
     }
+
+    if (validProducts) {
+      console.log("Review of the order details...");
+      console.log(orderDetails);
+
+      const confirmation = readlineSync.keyInYNStrict("Confirm the recording of this order?");
+      if (confirmation) {
+        try {
+          const orderId = await purchaseModule.add(
+            orderDetails.orderDate, 
+            orderDetails.deliveryAddress, 
+            orderDetails.customerId, 
+            orderDetails.trackNumber, 
+            orderDetails.orderStatus
+          );
+
+          for (const product of orderDetails.products) {
+            await purchaseModule.addProductToOrder(orderId, product.productId, product.quantity, product.price);
+          }
+
+          console.log(`Order saved with ID: ${orderId}`);
+        } catch (error) {
+          console.error("Error saving the order:", error);
+        }
+      } else {
+        console.log("Order not saved.");
+      }
+    } else {
+      console.log("The order was not saved because one or more products do not exist.");
+    }
+
   } catch (error) {
-    console.error("An unexpected error occurred:");
+    console.error("An unexpected error occurred:", error);
   }
 }
 
@@ -197,39 +212,51 @@ async function addPurchaseOrder() {
 async function modifyOrder() {
   try {
     // Étape 1: Demander l'ID de la commande à modifier
-    const orderId = readlineSync.questionInt("Enter the ID of the order to modify: ");
-
-    // Vérifier si la commande existe
-    const orderExists = await purchaseModule.getById(orderId);
-    if (!orderExists) {
-      console.log(`Order with ID: ${orderId} does not exist.`);
-      return; // Arrêter la fonction si la commande n'existe pas
+    let orderId;
+    let validOrder = false;
+    while (!validOrder) {
+      orderId = readlineSync.questionInt("Enter the ID of the order to modify: ");
+      // Vérifier si la commande existe
+      const orderExists = await purchaseModule.getById(orderId);
+      if (orderExists) {
+        validOrder = true;
+      } else {
+        console.log(`Order with ID: ${orderId} does not exist. Please enter a valid order ID.`);
+      }
     }
 
     // Étape 2: Demander les nouvelles informations pour la commande
     let newOrderDate = getValidDate("Enter the new order date (YYYY-MM-DD): ");
+    
     let newDeliveryAddress = readlineSync.question("Enter the new delivery address: ");
     while (!newDeliveryAddress) {
       console.log("\nPlease enter the delivery address.");
-      newDeliveryAddress = readlineSync.question("Enter the delivery address: ");
+      newDeliveryAddress = readlineSync.question("Enter the new delivery address: ");
     }
 
-    let newCustomerId = readlineSync.questionInt("Enter the new customer ID: ");
-    while (isNaN(newCustomerId) || newCustomerId <= 0) {
-      console.log("\nPlease enter a valid customer ID.");
+    let newCustomerId;
+    let validCustomer = false;
+    while (!validCustomer) {
       newCustomerId = readlineSync.questionInt("Enter the new customer ID: ");
+      // Vérifier si le client existe
+      const customerExists = await purchaseModule.checkCustomerExists(newCustomerId);
+      if (customerExists) {
+        validCustomer = true;
+      } else {
+        console.log("\nThe new customer ID does not exist. Please enter a valid customer ID.");
+      }
     }
 
     let newTrackNumber = readlineSync.question("Enter the new tracking number: ");
     while (!newTrackNumber) {
       console.log("\nPlease enter the tracking number.");
-      newTrackNumber = readlineSync.question("Enter the tracking number: ");
+      newTrackNumber = readlineSync.question("Enter the new tracking number: ");
     }
 
     let newOrderStatus = readlineSync.question("Enter the new order status: ");
     while (!newOrderStatus) {
       console.log("\nPlease enter the order status.");
-      newOrderStatus = readlineSync.question("Enter the order status: ");
+      newOrderStatus = readlineSync.question("Enter the new order status: ");
     }
 
     // Étape 3: Confirmation de la mise à jour des informations de la commande
@@ -246,11 +273,9 @@ async function modifyOrder() {
     const confirmation = readlineSync.keyInYNStrict("Confirm the update of this order?");
     if (confirmation) {
       try {
-        // Mise à jour de la commande via le module
         const modifyOrderResult = await purchaseModule.update(
           orderId, newOrderDate, newDeliveryAddress, newCustomerId, newTrackNumber, newOrderStatus
         );
-
         console.log(`Number of rows updated: ${modifyOrderResult}`);
       } catch (error) {
         console.error("Error updating the order:");
@@ -258,7 +283,7 @@ async function modifyOrder() {
       }
     } else {
       console.log("Order update canceled.");
-      return; // Arrêter ici si la mise à jour de la commande est annulée
+      return;
     }
 
     // Étape 4: Demander si l'utilisateur veut modifier les détails de la commande
@@ -267,21 +292,33 @@ async function modifyOrder() {
     if (modifyDetails === 'yes') {
       let modifyMoreProducts = true;
       while (modifyMoreProducts) {
-        // Demander l'ID du produit à modifier
-        const productId = readlineSync.questionInt("Enter the product ID to modify: ");
-
-        // Vérifie si le produit existe dans la commande
-        const productExists = await purchaseModule.orderDetailExists(orderId, productId);
-        if (!productExists) {
-          console.log(`The product with ID ${productId} does not exist in this order.`);
-          return;
+        let productId;
+        let validProduct = false;
+        while (!validProduct) {
+          productId = readlineSync.questionInt("Enter the product ID to modify: ");
+          // Vérifier si le produit existe dans la commande
+          const productExists = await purchaseModule.orderDetailExists(orderId, productId);
+          if (productExists) {
+            validProduct = true;
+          } else {
+            console.log(`The product with ID ${productId} does not exist in this order. Please enter a valid product ID.`);
+          }
         }
 
-        // Demander les nouvelles informations pour le produit
-        const newQuantity = readlineSync.questionInt("Enter the new quantity: ");
-        const newPrice = readlineSync.questionFloat("Enter the new price: ");
+        let newQuantity;
+        while (true) {
+          newQuantity = readlineSync.questionInt("Enter the new quantity: ");
+          if (!isNaN(newQuantity) && newQuantity > 0) break;
+          console.log("\nPlease enter a valid quantity.");
+        }
 
-        // Mise à jour des détails de la commande via le module
+        let newPrice;
+        while (true) {
+          newPrice = readlineSync.questionFloat("Enter the new price: ");
+          if (!isNaN(newPrice) && newPrice >= 0) break;
+          console.log("\nPlease enter a valid price.");
+        }
+
         const updatedDetailRows = await purchaseModule.updateOrderDetail(orderId, productId, newQuantity, newPrice);
         if (updatedDetailRows > 0) {
           console.log("Order details updated successfully!");
@@ -289,7 +326,6 @@ async function modifyOrder() {
           console.log("No changes made to the order details.");
         }
 
-        // Demander si l'utilisateur veut modifier un autre produit
         modifyMoreProducts = readlineSync.keyInYNStrict("Do you want to modify another product?");
       }
     }
