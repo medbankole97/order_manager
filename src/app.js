@@ -401,7 +401,7 @@ async function addPayment() {
   try {
     let paymentDate = getValidDate("Enter the payment date (YYYY-MM-DD): ");
 
-    const amount = readlineSync.questionFloat("Enter the payment amount: ");
+    let amount = readlineSync.questionFloat("Enter the payment amount: ");
     while (isNaN(amount) || amount <= 0) {
       console.log("\nPlease enter a valid payment amount.");
       amount = readlineSync.questionFloat("Enter the payment amount: ");
@@ -413,10 +413,21 @@ async function addPayment() {
       paymentMethod = readlineSync.question("Enter the payment method: ");
     }
 
-    const orderId = readlineSync.questionInt("Enter the associated order ID: ");
-    while (isNaN(orderId) || orderId <= 0) {
-      console.log("\nPlease enter a valid order ID.");
+    let orderId;
+    let validOrder = false;
+    while (!validOrder) {
       orderId = readlineSync.questionInt("Enter the associated order ID: ");
+      if (isNaN(orderId) || orderId <= 0) {
+        console.log("\nPlease enter a valid order ID.");
+      } else {
+        // Vérifier si la commande existe dans la base de données
+        const orderExists = await purchaseModule.orderExists(orderId); // Assurez-vous d'avoir une fonction orderModule.exists()
+        if (orderExists) {
+          validOrder = true;
+        } else {
+          console.log(`Order with ID ${orderId} does not exist. Please enter a valid order ID.`);
+        }
+      }
     }
 
     const id = await paymentModule.add(paymentDate, amount, paymentMethod, orderId);
@@ -425,6 +436,7 @@ async function addPayment() {
     console.error("Error adding payment:", error.message);
   }
 }
+
 // Function to list all payments
 async function listAllPayments() {
   try {
@@ -444,38 +456,62 @@ async function listAllPayments() {
 async function updatePayment() {
   try {
     const id = readlineSync.questionInt("Enter the ID of the payment to update: ");
+    
+    // Vérification de l'existence du paiement
     const exists = await paymentModule.exists(id);
     if (!exists) {
       console.log(`Payment with ID ${id} does not exist.`);
       return;
     }
 
+    // Demander la nouvelle date de paiement
     let paymentDate = getValidDate("Enter the new payment date (YYYY-MM-DD): ");
 
-    const amount = readlineSync.questionFloat("Enter the new payment amount: ");
+    // Validation du nouveau montant
+    let amount = readlineSync.questionFloat("Enter the new payment amount: ");
     while (isNaN(amount) || amount <= 0) {
       console.log("\nPlease enter a valid payment amount.");
       amount = readlineSync.questionFloat("Enter the new payment amount: ");
     }
 
+    // Validation de la nouvelle méthode de paiement
     let paymentMethod = readlineSync.question("Enter the new payment method: ");
     while (!paymentMethod) {
       console.log("\nPlease enter the payment method.");
       paymentMethod = readlineSync.question("Enter the new payment method: ");
     }
 
-    const orderId = readlineSync.questionInt("Enter the new associated order ID: ");
-    while (isNaN(orderId) || orderId <= 0) {
-      console.log("\nPlease enter a valid order ID.");
+    // Validation du nouvel ID de commande associé
+    let orderId;
+    let validOrder = false;
+    while (!validOrder) {
       orderId = readlineSync.questionInt("Enter the new associated order ID: ");
+      if (isNaN(orderId) || orderId <= 0) {
+        console.log("\nPlease enter a valid order ID.");
+      } else {
+        // Vérification de l'existence de la commande
+        const orderExists = await purchaseModule.orderExists(orderId);
+        if (orderExists) {
+          validOrder = true;
+        } else {
+          console.log(`Order with ID ${orderId} does not exist. Please enter a valid order ID.`);
+        }
+      }
     }
 
-    await paymentModule.update(id, paymentDate, amount, paymentMethod, orderId);
-    console.log("Payment information updated successfully.");
+    // Mise à jour des informations du paiement
+    const result = await paymentModule.update(id, paymentDate, amount, paymentMethod, orderId);
+    if (result > 0) {
+      console.log("Payment information updated successfully.");
+    } else {
+      console.log("No changes were made to the payment information.");
+    }
+
   } catch (error) {
     console.error("Error updating payment information:", error.message);
   }
 }
+
 
 
 // Function to delete a payment
@@ -685,11 +721,16 @@ async function listAllProducts() {
 // Function to update product information
 async function updateProduct() {
   try {
-    const id = readlineSync.questionInt("Enter the ID of the product to update: ");
-    const exists = await productModule.exists(id);
-    if (!exists) {
-      console.log(`Product with ID ${id} does not exist.`);
-      return;
+    let id;
+    let validId = false;
+    while (!validId) {
+      id = readlineSync.questionInt("Enter the ID of the product to update: ");
+      const exists = await productModule.exists(id);
+      if (exists) {
+        validId = true;
+      } else {
+        console.log(`Product with ID ${id} does not exist. Please enter a valid ID.`);
+      }
     }
 
     let name = readlineSync.question("Enter the new name: ");
@@ -740,6 +781,7 @@ async function updateProduct() {
     console.error("Error updating product information:", error.message);
   }
 }
+
 // Function to delete a product
 async function deleteProduct() {
   try {
@@ -752,7 +794,7 @@ async function deleteProduct() {
 
     const confirmation = readlineSync.keyInYNStrict("Are you sure you want to delete this product?");
     if (confirmation) {
-      await productModule.remove(id);
+      await productModule.destroy(id);
       console.log("Product deleted successfully.");
     } else {
       console.log("Product deletion canceled.");

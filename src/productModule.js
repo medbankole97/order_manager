@@ -76,13 +76,16 @@ async function add(name, description, price, stock, category, barcode, status) {
 async function update(id, name, description, price, stock, category, barcode, status) {
   const connection = await connPool.getConnection();
   try {
-    validateProductData(name, description, price, stock, category, barcode, status); // Validation des données
+    // Validation des données du produit
+    validateProductData(name, description, price, stock, category, barcode, status);
 
+    // Vérifier si le produit existe
     const existsProduct = await exists(id);
     if (!existsProduct) {
       throw new Error(`The product with ID ${id} does not exist.`);
     }
 
+    // Vérifier si le code-barres est unique
     const isUnique = await isBarcodeUnique(barcode, id);
     if (!isUnique) {
       throw new Error('The barcode already exists.');
@@ -100,7 +103,6 @@ async function update(id, name, description, price, stock, category, barcode, st
     connection.release();
   }
 }
-
 // Supprimer un produit
 async function destroy(id) {
   const connection = await connPool.getConnection();
