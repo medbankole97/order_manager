@@ -39,19 +39,19 @@ async function getById(orderId) {
   }
 }
 
-// Vérifier si un client existe
-async function checkCustomerExists(customerId) {
-  if (isNaN(customerId)) {
-    throw new Error("Customer ID must be a number.");
-  }
-  try {
-    const [rows] = await connPool.query('SELECT id FROM customers WHERE id = ?', [customerId]);
-    return rows.length > 0; // Retourne true si le client existe, sinon false
-  } catch (error) {
-    console.error("Error checking customer existence:");
-    throw error;
-  }
-}
+// // Vérifier si un client existe
+// async function checkCustomerExists(customerId) {
+//   if (isNaN(customerId)) {
+//     throw new Error("Customer ID must be a number.");
+//   }
+//   try {
+//     const [rows] = await connPool.query('SELECT id FROM customers WHERE id = ?', [customerId]);
+//     return rows.length > 0; // Retourne true si le client existe, sinon false
+//   } catch (error) {
+//     console.error("Error checking customer existence:");
+//     throw error;
+//   }
+// }
 
 // Ajouter une commande d'achat
 async function add(orderDate, deliveryAddress, customerId, trackNumber, status) {
@@ -267,6 +267,28 @@ async function destroy(orderId) {
     throw error;
   }
 }
+// Vérifier si un produit existe dans la base de données
+async function checkProductExists(productId) {
+  try {
+    const [rows] = await connPool.query('SELECT id FROM products WHERE id = ?', [productId]);
+    return rows.length > 0; // Retourne true si le produit existe
+  } catch (error) {
+    console.error("Error checking if product exists:");
+    throw error;
+  }
+}
+
+// Vérifier si un client existe
+async function checkCustomerExists(customerId) {
+  try {
+    const [rows] = await connPool.query('SELECT id FROM customers WHERE id = ?', [customerId]);
+    return rows.length > 0; // Retourne true si le client existe, sinon false
+  } catch (error) {
+    console.error("Error checking if customer exists:");
+    throw error;
+  }
+}
+
 
 module.exports = {
   add,
@@ -278,5 +300,7 @@ module.exports = {
   updateOrderDetail, 
   addOrUpdateOrderLine,
   getById,
-  orderDetailExists
+  orderDetailExists,
+  checkProductExists,
+  checkCustomerExists
 };
