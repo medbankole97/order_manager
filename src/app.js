@@ -46,8 +46,8 @@ async function purchaseMenu() {
   console.log("1. Add a new order");
   console.log("2. List all orders");
   console.log("3. Edit an order");
-  console.log("4. Edit order details");
-  console.log("5. Delete an order");
+  console.log("4. Delete an order");
+  // console.log("5. Delete an order");
   console.log("0. Return to the main menu");
   const choice = readlineSync.question("Your choice: ");
   return choice;
@@ -192,23 +192,116 @@ async function addPurchaseOrder() {
     console.error("An unexpected error occurred:");
   }
 }
-async function modifyOrderDetails() {
+
+
+async function modifyOrder() {
   try {
+    // Étape 1: Demander l'ID de la commande à modifier
     const orderId = readlineSync.questionInt("Enter the ID of the order to modify: ");
-    const productId = readlineSync.questionInt("Enter the product ID to modify in the order: ");
-    const newQuantity = readlineSync.questionInt("Enter the new quantity: ");
-    const newPrice = readlineSync.questionFloat("Enter the new price: ");
-    
-    const updatedRows = await purchaseModule.updateOrderDetail(orderId, productId, newQuantity, newPrice);
-    if (updatedRows > 0) {
-      console.log("Order details successfully updated!");
-    } else {
-      console.log("No changes made to the order details.");
+
+    // Vérifier si la commande existe
+    const orderExists = await purchaseModule.getById(orderId);
+    if (!orderExists) {
+      console.log(`Order with ID: ${orderId} does not exist.`);
+      return; // Arrêter la fonction si la commande n'existe pas
     }
+
+    // Étape 2: Demander les nouvelles informations pour la commande
+    let newOrderDate = getValidDate("Enter the new order date (YYYY-MM-DD): ");
+    let newDeliveryAddress = readlineSync.question("Enter the new delivery address: ");
+    while (!newDeliveryAddress) {
+      console.log("\nPlease enter the delivery address.");
+      newDeliveryAddress = readlineSync.question("Enter the delivery address: ");
+    }
+
+    let newCustomerId = readlineSync.questionInt("Enter the new customer ID: ");
+    while (isNaN(newCustomerId) || newCustomerId <= 0) {
+      console.log("\nPlease enter a valid customer ID.");
+      newCustomerId = readlineSync.questionInt("Enter the new customer ID: ");
+    }
+
+    let newTrackNumber = readlineSync.question("Enter the new tracking number: ");
+    while (!newTrackNumber) {
+      console.log("\nPlease enter the tracking number.");
+      newTrackNumber = readlineSync.question("Enter the tracking number: ");
+    }
+
+    let newOrderStatus = readlineSync.question("Enter the new order status: ");
+    while (!newOrderStatus) {
+      console.log("\nPlease enter the order status.");
+      newOrderStatus = readlineSync.question("Enter the order status: ");
+    }
+
+    // Étape 3: Confirmation de la mise à jour des informations de la commande
+    console.log("\nReview of the new order details...");
+    console.log({
+      orderId,
+      newOrderDate,
+      newDeliveryAddress,
+      newCustomerId,
+      newTrackNumber,
+      newOrderStatus
+    });
+
+    const confirmation = readlineSync.keyInYNStrict("Confirm the update of this order?");
+    if (confirmation) {
+      try {
+        // Mise à jour de la commande via le module
+        const modifyOrderResult = await purchaseModule.update(
+          orderId, newOrderDate, newDeliveryAddress, newCustomerId, newTrackNumber, newOrderStatus
+        );
+
+        console.log(`Number of rows updated: ${modifyOrderResult}`);
+      } catch (error) {
+        console.error("Error updating the order:");
+        console.error(error);
+      }
+    } else {
+      console.log("Order update canceled.");
+      return; // Arrêter ici si la mise à jour de la commande est annulée
+    }
+
+    // Étape 4: Demander si l'utilisateur veut modifier les détails de la commande
+    const modifyDetails = readlineSync.question("Do you want to modify the order details (yes/no)? ").toLowerCase();
+    
+    if (modifyDetails === 'yes') {
+      let modifyMoreProducts = true;
+      while (modifyMoreProducts) {
+        // Demander l'ID du produit à modifier
+        const productId = readlineSync.questionInt("Enter the product ID to modify: ");
+
+        // Vérifie si le produit existe dans la commande
+        const productExists = await purchaseModule.orderDetailExists(orderId, productId);
+        if (!productExists) {
+          console.log(`The product with ID ${productId} does not exist in this order.`);
+          return;
+        }
+
+        // Demander les nouvelles informations pour le produit
+        const newQuantity = readlineSync.questionInt("Enter the new quantity: ");
+        const newPrice = readlineSync.questionFloat("Enter the new price: ");
+
+        // Mise à jour des détails de la commande via le module
+        const updatedDetailRows = await purchaseModule.updateOrderDetail(orderId, productId, newQuantity, newPrice);
+        if (updatedDetailRows > 0) {
+          console.log("Order details updated successfully!");
+        } else {
+          console.log("No changes made to the order details.");
+        }
+
+        // Demander si l'utilisateur veut modifier un autre produit
+        modifyMoreProducts = readlineSync.keyInYNStrict("Do you want to modify another product?");
+      }
+    }
+
   } catch (error) {
-    console.error("Error updating the order details:");
+    console.error("An unexpected error occurred:");
+    console.error(error);
   }
 }
+
+
+
 
 // Function to list all purchase orders
 async function listAllPurchaseOrders() {
@@ -241,78 +334,6 @@ async function listAllPurchaseOrders() {
     }
   } catch (error) {
     console.error("Error retrieving purchase orders:");
-  }
-}
-// modifier les commandes
-
-async function modifyOrder() {
-  try {
-    // Demande à l'utilisateur l'ID de la commande à modifier
-    const orderId = readlineSync.questionInt("Enter the ID of the order to modify: ");
-    
-    // Vérifie si la commande existe dans la base de données
-    const orderExists = await purchaseModule.getById(orderId); // Assurez-vous que cette méthode existe dans votre module
-    if (!orderExists) {
-      console.log(`Order with ID: ${orderId} does not exist.`);
-      return; // Arrête la fonction si l'ID de commande n'existe pas
-    }
-
-    // Si la commande existe, demande les nouvelles informations
-    let newOrderDate = getValidDate("Enter the new order date (YYYY-MM-DD): ");
-    let newDeliveryAddress = readlineSync.question("Enter the new delivery address: ");
-    while (!newDeliveryAddress) {
-      console.log("\nPlease enter the delivery address.");
-      newDeliveryAddress = readlineSync.question("Enter the new delivery address: ");
-    }
-
-    let newCustomerId = readlineSync.questionInt("Enter the new customer ID: ");
-    while (isNaN(newCustomerId) || newCustomerId <= 0) {
-      console.log("\nPlease enter a valid customer ID.");
-      newCustomerId = readlineSync.questionInt("Enter the new customer ID: ");
-    }
-
-    let newTrackNumber = readlineSync.question("Enter the new tracking number: ");
-    while (!newTrackNumber) {
-      console.log("\nPlease enter the tracking number.");
-      newTrackNumber = readlineSync.question("Enter the new tracking number: ");
-    }
-
-    let newOrderStatus = readlineSync.question("Enter the new order status: ");
-    while (!newOrderStatus) {
-      console.log("\nPlease enter the order status.");
-      newOrderStatus = readlineSync.question("Enter the new order status: ");
-    }
-
-    // Confirmation des nouvelles informations
-    console.log("\nReview of the new order details...");
-    console.log({
-      orderId,
-      newOrderDate,
-      newDeliveryAddress,
-      newCustomerId,
-      newTrackNumber,
-      newOrderStatus
-    });
-
-    const confirmation = readlineSync.keyInYNStrict("Confirm the update of this order?");
-    if (confirmation) {
-      try {
-        // Mise à jour de la commande via le module
-        const modifyOrderResult = await purchaseModule.update(
-          orderId, newOrderDate, newDeliveryAddress, newCustomerId, newTrackNumber, newOrderStatus
-        );
-        
-        console.log(`Number of rows updated: ${modifyOrderResult}`);
-      } catch (error) {
-        console.error("Error updating the order:");
-        console.error(error);
-      }
-    } else {
-      console.log("Order update canceled.");
-    }
-  } catch (error) {
-    console.error("An unexpected error occurred:");
-    console.error(error);
   }
 }
 
@@ -557,7 +578,7 @@ async function deleteCustomer() {
   }
 }
 
-// Function to add a product
+
 // Function to add a product
 async function addProduct() {
   try {
@@ -778,10 +799,8 @@ async function main() {
                 case "3":
                   await modifyOrder();
                   break;
+             
               case "4":
-                await modifyOrderDetails();
-                break;
-              case "5":
                 const deleteOrderId = readlineSync.questionInt("Enter the ID of the order to delete: ");
                 const deleteOrderResult = await purchaseModule.destroy(deleteOrderId);
                 console.log(`Number of rows deleted: ${deleteOrderResult}`);

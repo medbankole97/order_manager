@@ -1,14 +1,15 @@
 const connPool = require("./config/db");
 
 // Function to check if an order exists by ID
-async function orderExists(id) {
-  const [rows] = await connection.execute(
-    'SELECT COUNT(*) AS count FROM purchase_orders WHERE id = ?',
-    [id]
-  );
-  return rows[0].count > 0;
+async function orderExists(orderId) {
+  try {
+    const [rows] = await connPool.query('SELECT id FROM purchase_orders WHERE id = ?', [orderId]);
+    return rows.length > 0; // Retourne true si la commande existe, sinon false
+  } catch (error) {
+    console.error("Error checking if order exists:");
+    throw error;
+  }
 }
-
 
 // Récupérer une commande par ID
 async function getById(orderId) {
@@ -108,6 +109,7 @@ async function addProductToOrder(orderId, productId, quantity, price) {
 }
 
 // Mettre à jour une commande
+// Mettre à jour une commande
 async function update(orderId, orderDate, deliveryAddress, customerId, trackNumber, status) {
   if (isNaN(new Date(orderDate).getTime())) {
     throw new Error("Invalid order date.");
@@ -117,13 +119,18 @@ async function update(orderId, orderDate, deliveryAddress, customerId, trackNumb
     throw new Error("Track number must be a non-empty string.");
   }
 
-  try {
-    // Vérifier si la commande existe avant la mise à jour
-    const [order] = await connPool.query('SELECT id FROM purchase_orders WHERE id = ?', [orderId]);
-    if (order.length === 0) {
-      throw new Error("Order not found.");
-    }
+  // Vérifier si la commande et le client existent
+  const orderExistsResult = await orderExists(orderId);
+  if (!orderExistsResult) {
+    throw new Error("Order not found.");
+  }
 
+  const customerExistsResult = await checkCustomerExists(customerId);
+  if (!customerExistsResult) {
+    console.log("Customer ID does not exist.");
+  }
+
+  try {
     // Mettre à jour les détails de la commande
     const [result] = await connPool.query(
       'UPDATE purchase_orders SET date = ?, delivery_address = ?, customer_id = ?, track_number = ?, status = ? WHERE id = ?',
@@ -131,10 +138,12 @@ async function update(orderId, orderDate, deliveryAddress, customerId, trackNumb
     );
     return result.affectedRows; // Nombre de lignes affectées
   } catch (error) {
+    // Affiche uniquement le message d'erreur sans détails de la pile
     console.error("Error updating purchase order:");
-    throw error;
+    console.log("Failed to update the order."); // Fournir un message d'erreur plus général
   }
 }
+
 
 // Mettre à jour un détail de commande
 async function updateOrderDetail(orderId, productId, newQuantity, newPrice) {
@@ -209,6 +218,21 @@ async function addOrUpdateOrderLine(orderId, productId, quantity, price) {
   }
 }
 
+// Vérifier si un produit existe dans une commande
+async function orderDetailExists(orderId, productId) {
+  try {
+    const [rows] = await connPool.query(
+      'SELECT * FROM order_details WHERE order_id = ? AND product_id = ?',
+      [orderId, productId]
+    );
+    return rows.length > 0; // Retourne true si le produit existe dans la commande
+  } catch (error) {
+    console.error("Error checking if product exists in order:");
+    throw error;
+  }
+}
+
+
 // Récupérer toutes les commandes avec leurs détails
 async function get() {
   try {
@@ -253,5 +277,6 @@ module.exports = {
   orderExists,
   updateOrderDetail, 
   addOrUpdateOrderLine,
-  getById
+  getById,
+  orderDetailExists
 };
