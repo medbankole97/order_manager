@@ -526,7 +526,7 @@ async function deletePayment() {
 
     const confirmation = readlineSync.keyInYNStrict("Are you sure you want to delete this payment?");
     if (confirmation) {
-      await paymentModule.remove(id);
+      await paymentModule.destroy(id);
       console.log("Payment deleted successfully.");
     } else {
       console.log("Payment deletion canceled.");

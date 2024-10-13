@@ -123,6 +123,7 @@ async function update(id, paymentDate, amount, paymentMethod, orderId) {
 
 // Supprimer un paiement
 async function destroy(id) {
+  const connection = await connPool.getConnection();
   // Validation des champs obligatoires
   if (isNaN(id) || id <= 0) {
     throw new Error("Invalid ID provided.");
@@ -134,7 +135,6 @@ async function destroy(id) {
     throw new Error(`The payment with ID ${id} does not exist.`);
   }
 
-  const connection = await connPool.getConnection();
   try {
     const [result] = await connection.execute(
       "DELETE FROM payments WHERE id = ?",
@@ -151,5 +151,6 @@ async function destroy(id) {
     connection.release();
   }
 }
+
 
 module.exports = { get, add, update, destroy, exists };
